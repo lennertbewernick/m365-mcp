@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "m365": {
+      "command": "node",
+      "args": ["/ABSOLUTE/PATH/TO/m365-mcp/dist/index.js"],
+      "env": {}
+    }
+  }
+}

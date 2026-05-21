@@ -1,0 +1,50 @@
+{
+  "name": "@lennertbewernick/m365-mcp",
+  "version": "0.1.0",
+  "description": "Model Context Protocol server wrapping the CLI for Microsoft 365 — gives LLM agents typed, authenticated access to Outlook, Teams, SharePoint, Planner, Power Automate and more.",
+  "type": "module",
+  "bin": {
+    "m365-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    ".mcp.json.example",
+    "skills"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "microsoft-365",
+    "m365",
+    "outlook",
+    "teams",
+    "sharepoint",
+    "claude"
+  ],
+  "author": "Lennert Bewernick",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lennertbewernick/m365-mcp.git"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "shell-quote": "^1.8.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "@types/shell-quote": "^1.7.5",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

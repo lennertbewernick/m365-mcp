@@ -13,7 +13,7 @@ export interface M365Result {
 const DEFAULT_TIMEOUT_MS = 120_000;
 const MAX_OUTPUT_BYTES = 1_000_000;
 
-function parseArgs(command: string): string[] {
+export function parseArgs(command: string): string[] {
   const trimmed = command.trim().replace(/^m365\s+/, "");
   const tokens = shellParse(trimmed);
   const args: string[] = [];

@@ -1,4 +1,5 @@
-import { runM365, formatResult } from "../m365.js";
+import { runM365, formatResult, parseArgs } from "../m365.js";
+import { checkCommandAllowed, guardConfigFromEnv } from "../guard.js";
 
 export const runTool = {
   name: "m365_run",
@@ -9,7 +10,9 @@ export const runTool = {
     "Examples: 'status', 'outlook message list --folderName Inbox --top 10', " +
     "'spo site list', 'teams team list', 'planner plan list --ownerGroupId <id>'. " +
     "Use m365_help first if unsure about a command's arguments. " +
-    "Destructive operations (remove, delete, set, add) modify real tenant data — always confirm with the user before invoking.",
+    "The server runs READ-ONLY by default: commands with a mutating verb (add, set, remove, delete, …) " +
+    "are rejected unless the server was started with M365_MCP_ALLOW_WRITE=true. " +
+    "Destructive operations modify real tenant data — always confirm with the user before invoking.",
   inputSchema: {
     type: "object",
     properties: {
@@ -30,6 +33,13 @@ export const runTool = {
 };
 
 export async function handleRun(args: { command: string; timeoutMs?: number }) {
+  const blocked = checkCommandAllowed(parseArgs(args.command), guardConfigFromEnv(process.env));
+  if (blocked) {
+    return {
+      content: [{ type: "text" as const, text: blocked }],
+      isError: true,
+    };
+  }
   const result = await runM365(args.command, { timeoutMs: args.timeoutMs });
   return {
     content: [{ type: "text" as const, text: formatResult(result) }],

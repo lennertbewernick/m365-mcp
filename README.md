@@ -131,9 +131,35 @@ Each teammate needs to:
 
 Each user runs under **their own M365 permissions** — the MCP server doesn't share tokens between people. The Entra app registration `d61f4bc9-2d02-4965-8a21-edd272b410cf` (the user's "Claude MCP" app, public client) is sufficient if your tenant allows custom app registrations; otherwise the team can use the default PnP CLI app ID by running `m365 setup`.
 
+## Read-only by default (write guard)
+
+`m365_run` runs **read-only by default** ([ADR-001 D2](docs/adr/ADR-001-least-privilege-mcp-graph-scopes.md)). Commands whose action verb mutates tenant state (`add`, `set`, `remove`, `delete`, `clear`, `restore`, `revoke`, `disconnect`, `logout`, `send`, `create`, `update`, …) are rejected server-side with an error that names the flag. The verb is matched on the parsed command path (`m365 <service> <resource> <verb>`), never by substring, so `list`/`get`/`show`/`status`/`help` always work.
+
+Two environment variables control the guard (set them in the `env` block of your MCP client config):
+
+| Variable | Effect |
+| --- | --- |
+| `M365_MCP_ALLOW_WRITE=true` | Enables mutating commands. Anything other than the literal `true` keeps the server read-only. |
+| `M365_MCP_COMMAND_ALLOWLIST` | Comma-separated command prefixes (e.g. `planner,outlook message list`). When set, any command not matching a prefix is rejected — this applies **in addition to** the write guard. |
+
+Example — a client that needs Planner/Teams writes:
+
+```json
+{
+  "mcpServers": {
+    "m365": {
+      "command": "node",
+      "args": ["/absolute/path/to/m365-mcp/dist/index.js"],
+      "env": { "M365_MCP_ALLOW_WRITE": "true" }
+    }
+  }
+}
+```
+
 ## Safety notes
 
-- **The CLI can mutate your tenant.** `remove`, `set`, `add`, `send` all hit real data. The skills instruct the model to confirm before destructive calls — but you should treat any `m365_run` output as something to review.
+- **The CLI can mutate your tenant** once `M365_MCP_ALLOW_WRITE=true` is set. `remove`, `set`, `add`, `send` all hit real data. The skills instruct the model to confirm before destructive calls — but you should treat any `m365_run` output as something to review.
+- **No shell, ever.** The server spawns `m365` via `spawn(command, argsArray)` — without a shell. It passes `env: process.env` through to the child, which is required for MSAL token-cache paths and is safe **only because** there is no shell involved. Never switch this to `exec`/`execSync`/`shell: true`: full-environment pass-through plus a shell would turn any argument-injection bug into environment-assisted command execution. [ADR-001 D3](docs/adr/ADR-001-least-privilege-mcp-graph-scopes.md) is the canonical record of this constraint.
 - **Output ends up in the LLM transcript.** Mail bodies, file contents, user lists — all visible to whatever model you're using and stored by your provider. Don't pull more than you need.
 - **No shell pipes.** The wrapper rejects `|`, `&&`, `;`, `>` in `m365_run` arguments. If you need to combine commands, call `m365_run` twice and let the model glue the results.
 - **Output is capped at 1 MB.** Large list operations should use `--top` / `--pageSize` / `--filter`.
@@ -160,7 +186,7 @@ echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":
 - [ ] Typed shortcut tools for common patterns (`get_unread_mails`, `find_files`, `today_events`, …)
 - [ ] Service-principal auth mode for unattended scenarios
 - [ ] Pagination helpers
-- [ ] Tests + CI
+- [ ] CI (guard tests exist: `npm test`)
 
 PRs welcome.
 
